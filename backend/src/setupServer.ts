@@ -8,6 +8,10 @@ import HTTP_STATUS from 'http-status-codes';
 import 'express-async-errors';
 import compression from 'compression';
 import { config } from './config';
+import { Server } from 'socket.io';
+import { createClient } from 'redis';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { isOptionalTypeNode } from 'typescript';
 const SERVER_PORT = 5000;
 
 export class AraServer {
@@ -58,17 +62,36 @@ export class AraServer {
     private async startServer (app: Application): Promise<void> {
         try{
             const httpServer : http.Server =  new http.Server(app);
+            const socketIO : Server = await this.createSocketIO(httpServer);
+            this.socketIOConnections(socketIO);
             this.startHttpServer(httpServer);
         }catch(error) {
             console.log(error)
         }
     }
 
-    private createSocketIO (httpServer : http.Server): void {}
+    private async createSocketIO (httpServer : http.Server): Promise<Server> {
+        const io : Server = new Server (httpServer, {
+            cors:{
+                origin: config.CLIENT_URL,
+                methods : ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+            }
+        });
+        const pubClient = createClient({url : config.REDIS_HOST});
+        const subClient = pubClient.duplicate();
+        await Promise.all([pubClient.connect(), subClient.connect()]);
+        io.adapter(createAdapter(pubClient, subClient));
+        return io;
+    }
 
     private startHttpServer (httpServer : http.Server): void {
+        console.log(`Server has started with process ${process.pid}`)
         httpServer.listen(SERVER_PORT, ()=> {
             console.log(`Server Running on port ${SERVER_PORT}`)
         })
+    }
+
+    private socketIOConnections (io: Server) : void {
+
     }
 }
