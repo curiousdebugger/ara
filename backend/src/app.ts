@@ -1,6 +1,6 @@
 import express, { Express } from 'express';
-import { AraServer } from './setupServer';
-import databaseConnection from './setupDatabase';
+import { AraServer } from '@root/setupServer';
+import databaseConnection from '@root/setupDatabase';
 import { config } from './config';
 
 class Application {
