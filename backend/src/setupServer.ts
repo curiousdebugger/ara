@@ -11,10 +11,13 @@ import { config } from './config';
 import { Server } from 'socket.io';
 import { createClient } from 'redis';
 import { createAdapter } from '@socket.io/redis-adapter';
+import Logger from 'bunyan';
 import applicationRoutes from  './routes';
 import { isOptionalTypeNode } from 'typescript';
 import { CustomError, IErrorResponse } from './shared/globals/helpers/error-handler';
+
 const SERVER_PORT = 5000;
+const log : Logger = config.createLogger('setupServer');
 
 export class AraServer {
     private app:Application;
@@ -83,7 +86,7 @@ export class AraServer {
             this.socketIOConnections(socketIO);
             this.startHttpServer(httpServer);
         }catch(error) {
-            console.log(error)
+            log.error(error)
         }
     }
 
@@ -98,11 +101,11 @@ export class AraServer {
         const subClient = pubClient.duplicate();
         
         pubClient.on("error", (err) => {
-            console.log(err.message);
+            log.error(err.message);
         });
           
         subClient.on("error", (err) => {
-            console.log(err.message);
+            log.error(err.message);
         });
         await Promise.all([pubClient.connect(), subClient.connect()]);
         io.adapter(createAdapter(pubClient, subClient));
@@ -110,9 +113,9 @@ export class AraServer {
     }
 
     private startHttpServer (httpServer : http.Server): void {
-        console.log(`Server has started with process ${process.pid}`)
+        log.info(`Server has started with process ${process.pid}`)
         httpServer.listen(SERVER_PORT, ()=> {
-            console.log(`Server Running on port ${SERVER_PORT}`)
+            log.info(`Server Running on port ${SERVER_PORT}`)
         })
     }
 
